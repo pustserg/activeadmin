@@ -107,6 +107,8 @@ module ActiveAdmin
                                       :email,
                                       :to_s ]
 
+    setting :disable_autoreload, false
+
     # == Deprecated Settings
 
     def allow_comments=(*)
@@ -174,6 +176,7 @@ module ActiveAdmin
     # Removes all defined controllers from memory. Useful in
     # development, where they are reloaded on each request.
     def unload!
+      return if disable_autoreload && loaded?
       namespaces.each &:unload!
       @@loaded = false
     end
@@ -181,13 +184,12 @@ module ActiveAdmin
     # Loads all ruby files that are within the load_paths setting.
     # To reload everything simply call `ActiveAdmin.unload!`
     def load!
-      unless loaded?
-        ActiveAdmin::Event.dispatch BeforeLoadEvent, self # before_load hook
-        files.each{ |file| load file }                    # load files
-        namespace(default_namespace)                      # init AA resources
-        ActiveAdmin::Event.dispatch AfterLoadEvent, self  # after_load hook
-        @@loaded = true
-      end
+      retutn if loaded?
+      ActiveAdmin::Event.dispatch BeforeLoadEvent, self # before_load hook
+      files.each{ |file| load file }                    # load files
+      namespace(default_namespace)                      # init AA resources
+      ActiveAdmin::Event.dispatch AfterLoadEvent, self  # after_load hook
+      @@loaded = true
     end
 
     def load(file)
