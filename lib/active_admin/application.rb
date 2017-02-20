@@ -140,6 +140,8 @@ module ActiveAdmin
     # To make debugging easier, by default don't stream in development
     setting :disable_streaming_in, ['development']
 
+    setting :disable_autoreload, false
+
     # == Deprecated Settings
 
     def allow_comments=(*)
@@ -207,6 +209,7 @@ module ActiveAdmin
     # Removes all defined controllers from memory. Useful in
     # development, where they are reloaded on each request.
     def unload!
+      return if disable_autoreload && loaded?
       namespaces.each &:unload!
       @@loaded = false
     end
@@ -214,13 +217,12 @@ module ActiveAdmin
     # Loads all ruby files that are within the load_paths setting.
     # To reload everything simply call `ActiveAdmin.unload!`
     def load!
-      unless loaded?
-        ActiveSupport::Notifications.publish BeforeLoadEvent, self # before_load hook
-        files.each{ |file| load file }                             # load files
-        namespace(default_namespace)                               # init AA resources
-        ActiveSupport::Notifications.publish AfterLoadEvent, self  # after_load hook
-        @@loaded = true
-      end
+      return if loaded?
+      ActiveSupport::Notifications.publish BeforeLoadEvent, self # before_load hook
+      files.each{ |file| load file }                             # load files
+      namespace(default_namespace)                               # init AA resources
+      ActiveSupport::Notifications.publish AfterLoadEvent, self  # after_load hook
+      @@loaded = true
     end
 
     def load(file)
